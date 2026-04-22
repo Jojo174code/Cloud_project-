@@ -13,6 +13,13 @@ export default function NavBar() {
       </Link>
 
       <div className="flex items-center gap-4">
+            {user && (
+              <Link href={user.role === 'MANAGER' ? '/manager/dashboard' : '/tenant/dashboard'}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition"
+              >
+                Dashboard
+              </Link>
+            )}
         {!user ? (
           <>
             <Link
