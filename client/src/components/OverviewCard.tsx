@@ -9,7 +9,7 @@ interface Props {
 
 export default function OverviewCard({ title, value, icon, className = '' }: Props) {
   return (
-    <div className={`glass p-4 flex items-center space-x-3 ${className}`)}>
+    <div className={`glass p-4 flex items-center space-x-3 ${className}`}>
       {icon && <div className="text-2xl">{icon}</div>}
       <div>
         <p className="text-sm text-gray-400">{title}</p>
