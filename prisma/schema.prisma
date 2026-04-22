@@ -3,7 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -43,7 +44,7 @@ model MaintenanceRequest {
 
   // AI fields
   ai_category            String?
-  ai_priority            String?
+  ai_priority            AiPriority?
   ai_summary             String?
   ai_recommended_action  String?
   ai_response_draft      String?
@@ -52,6 +53,13 @@ model MaintenanceRequest {
 
   // Relation back to tenant
   tenant          User @relation("TenantRequests", fields: [tenant_id], references: [id])
+}
+
+enum AiPriority {
+  low
+  medium
+  high
+  emergency
 }
 
 model FaqEntry {

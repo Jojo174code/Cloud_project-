@@ -16,6 +16,19 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
+export const getMe = async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ message: 'Unauthenticated' });
+  // fetch user info
+  const prisma = new (await import('@prisma/client')).PrismaClient();
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, full_name: true, email: true, role: true },
+  });
+  if (!dbUser) return res.status(404).json({ message: 'User not found' });
+  res.json(dbUser);
+};
+
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if (!email || !password) {

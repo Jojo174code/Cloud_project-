@@ -35,7 +35,7 @@ export const createMaintenance = async (data: CreateInput) => {
       where: { id: request.id },
       data: {
         ai_category: triage.category,
-        ai_priority: triage.priority === 'emergency' ? 4 : triage.priority === 'high' ? 3 : triage.priority === 'medium' ? 2 : 1,
+        ai_priority: triage.priority as any,
         ai_summary: triage.summary,
         ai_recommended_action: triage.recommended_action,
         ai_response_draft: triage.response_draft,
@@ -48,8 +48,9 @@ export const createMaintenance = async (data: CreateInput) => {
     console.error('AI triage failed:', e);
   }
 
-  // Return the request (note: AI fields are not included here – callers can fetch again if needed)
-  return request;
+  // Return the fully updated request with AI fields
+  const updated = await prisma.maintenanceRequest.findUnique({ where: { id: request.id } });
+  return updated;
 };
 
 /** List requests based on role */

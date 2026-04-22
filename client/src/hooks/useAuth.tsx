@@ -1,5 +1,6 @@
+"use client";
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import Router from 'next/router';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
 type User = {
@@ -19,15 +20,15 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   const syncUser = async (jwt: string) => {
     try {
-      // optional /api/auth/me endpoint could be added later; for now decode token payload minimally
-      const base = jwt.split('.')[1];
-      const payload = JSON.parse(atob(base));
-      setUser({ id: payload.userId, full_name: payload.fullName || 'User', role: payload.role || 'TENANT' } as any);
+      // Fetch full user profile via /api/auth/me
+      const profile = await api('/api/auth/me', { token: jwt });
+      setUser(profile);
     } catch {
       setUser(null);
     }
@@ -37,22 +38,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { token: jwt } = await api('/api/auth/login', { method: 'POST', body: { email, password } });
     localStorage.setItem('token', jwt);
     setToken(jwt);
-    await syncUser(jwt);
-    // redirect based on role – naive check
-    if (user?.role === 'MANAGER') Router.replace('/manager/dashboard');
-    else Router.replace('/tenant/dashboard');
+    // fetch profile and set user
+    const profile = await api('/api/auth/me', { token: jwt });
+    setUser(profile);
+    // redirect based on role
+    if (profile.role === 'MANAGER') router.replace('/manager/dashboard');
+    else router.replace('/tenant/dashboard');
   };
 
   const register = async (data: any) => {
     await api('/api/auth/register', { method: 'POST', body: data });
-    Router.replace('/login');
+    router.replace('/login');
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    Router.replace('/login');
+    router.replace('/login');
   };
 
   useEffect(() => {
