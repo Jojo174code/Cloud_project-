@@ -55,9 +55,13 @@ export const createMaintenance = async (data: CreateInput) => {
 /** List requests based on role */
 export const listMaintenance = async (user: { id: string; role: string }) => {
   if (user.role === UserRole.MANAGER) {
-    return prisma.maintenanceRequest.findMany({ orderBy: { created_at: 'desc' } });
+    // Manager sees all requests, include tenant name for UI
+    return prisma.maintenanceRequest.findMany({
+      include: { tenant: true },
+      orderBy: { created_at: 'desc' },
+    });
   }
-  // tenant – only own requests
+  // tenant – only own requests (no need for tenant relation)
   return prisma.maintenanceRequest.findMany({
     where: { tenant_id: user.id },
     orderBy: { created_at: 'desc' },

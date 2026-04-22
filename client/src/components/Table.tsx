@@ -11,7 +11,7 @@ interface Props<T> {
 }
 export default function Table<T>({ data, columns, className = '' }: Props<T>) {
   return (
-    <div className={`overflow-x-auto ${className}`}>;
+    <div className={`overflow-x-auto ${className}`}>
     <table className="min-w-full text-sm text-left text-gray-200">
       <thead className="bg-gray-800/60">
         <tr>
