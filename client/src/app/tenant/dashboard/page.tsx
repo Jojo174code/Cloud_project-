@@ -6,6 +6,7 @@ import OverviewCard from '@/components/OverviewCard';
 import Table from '@/components/Table';
 import Button from '@/components/Button';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import AiAssistant from '@/components/AiAssistant';
 import Link from 'next/link';
 
 type Request = {
@@ -68,6 +69,7 @@ export default function TenantDashboard() {
           <Table data={requests} columns={columns} />
         )}
       </Card>
+        <AiAssistant />
     </div>
   );
 }
