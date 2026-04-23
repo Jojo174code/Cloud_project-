@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Glass utility */
-.glass {
-  @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-xl;
+/* Temporary reset: remove custom @apply utility that is breaking Tailwind build */
+html, body {
+  min-height: 100%;
 }

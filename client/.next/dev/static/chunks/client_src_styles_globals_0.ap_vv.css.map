@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["file:///workspaces/Cloud_project-/client/src/styles/globals.css"],"sourcesContent":["@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n/* Glass utility */\n.glass {\n  @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-xl;\n}\n"],"names":[],"mappings":"AAAA;;AACA;;AACA;;AAIE"}}]
-}
