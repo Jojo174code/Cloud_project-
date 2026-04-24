@@ -31,21 +31,27 @@ export const fetchRelevantFaqs = async (question: string) => {
  * Given a tenant question, produce a safe answer.
  * If no relevant FAQs are found we return a fallback string.
  */
+const FALLBACK_FAQ_RESPONSE = 'I could not confirm that from the current property information. Please contact management for clarification.';
+
 export const answerTenantQuestion = async (question: string): Promise<string> => {
   const faqs = await fetchRelevantFaqs(question);
   if (faqs.length === 0) {
-    return 'I could not confirm that from the current property information. Please contact management for clarification.';
+    return FALLBACK_FAQ_RESPONSE;
   }
 
   const prompt = buildFaqPrompt(question, faqs);
 
-  const aiResponse = await callAi({
-    model: process.env.AI_MODEL || 'gpt-3.5-turbo',
-    messages: [{ role: 'system', content: 'You are a helpful property‑management assistant. Answer the tenant question based ONLY on the provided FAQ entries. Do not hallucinate information. Keep the answer concise and friendly.' },
-               { role: 'user', content: prompt }],
-    temperature: 0.2,
-  });
+  try {
+    const aiResponse = await callAi({
+      model: process.env.AI_MODEL || 'gpt-3.5-turbo',
+      messages: [{ role: 'system', content: 'You are a helpful property‑management assistant. Answer the tenant question based ONLY on the provided FAQ entries. Do not hallucinate information. Keep the answer concise and friendly.' },
+                 { role: 'user', content: prompt }],
+      temperature: 0.2,
+    });
 
-  // The provider should return plain text answer.
-  return aiResponse.content.trim();
+    const answer = aiResponse.content.trim();
+    return answer.length > 0 ? answer : FALLBACK_FAQ_RESPONSE;
+  } catch (error) {
+    return FALLBACK_FAQ_RESPONSE;
+  }
 };

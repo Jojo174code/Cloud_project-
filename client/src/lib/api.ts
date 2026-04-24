@@ -1,3 +1,8 @@
+const getApiBaseUrl = () => {
+  const envBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  return envBaseUrl && envBaseUrl.length > 0 ? envBaseUrl : 'http://localhost:4000';
+};
+
 export const api = async <T = any>(
   endpoint: string,
   {
@@ -12,15 +17,22 @@ export const api = async <T = any>(
   const auth = token ?? (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
   if (auth) headers['Authorization'] = `Bearer ${auth}`;
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const url = `${getApiBaseUrl()}${endpoint}`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    throw new Error(`Unable to reach LeasePilot backend at ${url}. Make sure the server is running on http://localhost:4000.`);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message || 'API error');
+    throw new Error(err.message || `Request to ${url} failed with status ${res.status}.`);
   }
   return res.json() as Promise<T>;
 };

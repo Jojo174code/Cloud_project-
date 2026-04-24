@@ -17,17 +17,25 @@ export default function AiAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim() || !token) return;
+    setError(null);
+
+    if (!question.trim()) return;
+
+    if (!token) {
+      setError('You need to log in again before using the AI assistant.');
+      return;
+    }
 
     const userMsg: Message = { role: 'user', text: question.trim() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
     setQuestion('');
     try {
-      const resp = await api('/api/ai/faq', {
+      const resp = await api<{ answer: string }>('/api/ai/faq', {
         method: 'POST',
         body: { question: userMsg.text },
         token,
@@ -35,7 +43,9 @@ export default function AiAssistant() {
       const assistantMsg: Message = { role: 'assistant', text: resp.answer };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err: any) {
-      const errMsg: Message = { role: 'assistant', text: err.message || 'Error' };
+      const message = err.message || 'Unable to send question right now.';
+      setError(message);
+      const errMsg: Message = { role: 'assistant', text: message };
       setMessages(prev => [...prev, errMsg]);
     } finally {
       setLoading(false);
@@ -52,6 +62,8 @@ export default function AiAssistant() {
           </div>
         ))}
       </div>
+      {!token && <p className="mb-3 text-sm text-yellow-300">Log in to use the AI assistant.</p>}
+      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
       <form onSubmit={handleSend} className="flex gap-2 items-center">
         <Input
           placeholder="Ask a question..."
