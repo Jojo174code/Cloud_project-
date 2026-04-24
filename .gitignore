@@ -16,3 +16,4 @@ coverage/
 .DS_Store
 
 !server/.env.example
+prisma/dev.db
