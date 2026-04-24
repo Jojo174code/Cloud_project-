@@ -9,8 +9,8 @@ const prisma = new PrismaClient();
  * Simple relevance: case‑insensitive substring match on question or answer.
  */
 export const fetchRelevantFaqs = async (question: string) => {
-  const normalizedTerms = question
-    .toLowerCase()
+  const normalizedQuestion = question.toLowerCase().trim();
+  const normalizedTerms = normalizedQuestion
     .split(/\s+/)
     .map(term => term.trim())
     .filter(term => term.length > 1);
@@ -20,11 +20,26 @@ export const fetchRelevantFaqs = async (question: string) => {
   });
 
   return faqs
-    .filter(faq => {
+    .map(faq => {
       const haystack = `${faq.question} ${faq.answer}`.toLowerCase();
-      return normalizedTerms.some(term => haystack.includes(term));
+      let score = 0;
+
+      if (haystack.includes(normalizedQuestion)) {
+        score += 10;
+      }
+
+      for (const term of normalizedTerms) {
+        if (haystack.includes(term)) {
+          score += 2;
+        }
+      }
+
+      return { faq, score };
     })
-    .slice(0, 5);
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(entry => entry.faq);
 };
 
 /**
@@ -33,10 +48,19 @@ export const fetchRelevantFaqs = async (question: string) => {
  */
 const FALLBACK_FAQ_RESPONSE = 'I could not confirm that from the current property information. Please contact management for clarification.';
 
+const answerFromFaqs = (faqs: { answer: string }[]) => {
+  const firstAnswer = faqs[0]?.answer?.trim();
+  return firstAnswer && firstAnswer.length > 0 ? firstAnswer : FALLBACK_FAQ_RESPONSE;
+};
+
 export const answerTenantQuestion = async (question: string): Promise<string> => {
   const faqs = await fetchRelevantFaqs(question);
   if (faqs.length === 0) {
     return FALLBACK_FAQ_RESPONSE;
+  }
+
+  if (!process.env.AI_API_KEY) {
+    return answerFromFaqs(faqs);
   }
 
   const prompt = buildFaqPrompt(question, faqs);
@@ -50,8 +74,8 @@ export const answerTenantQuestion = async (question: string): Promise<string> =>
     });
 
     const answer = aiResponse.content.trim();
-    return answer.length > 0 ? answer : FALLBACK_FAQ_RESPONSE;
+    return answer.length > 0 ? answer : answerFromFaqs(faqs);
   } catch (error) {
-    return FALLBACK_FAQ_RESPONSE;
+    return answerFromFaqs(faqs);
   }
 };

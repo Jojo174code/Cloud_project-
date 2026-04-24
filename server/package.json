@@ -6,7 +6,8 @@
     "schema": "../prisma/schema.prisma"
   },
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "seed:faqs": "node scripts/seedFaqs.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
