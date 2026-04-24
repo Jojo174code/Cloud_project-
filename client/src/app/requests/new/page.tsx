@@ -12,7 +12,7 @@ export default function NewRequestPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("low");
+  const [priority, setPriority] = useState("1");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +23,11 @@ export default function NewRequestPage() {
       await (await import("@/lib/api")).api("/api/maintenance", {
         method: "POST",
         token,
-        body: { title, description, ai_priority: priority },
+        body: {
+          title,
+          description,
+          user_reported_urgency: Number(priority),
+        },
       });
       // after creation, go back to tenant dashboard
       router.replace("/tenant/dashboard");
@@ -58,10 +62,10 @@ export default function NewRequestPage() {
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
         >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="emergency">Emergency</option>
+          <option value="1">Low</option>
+          <option value="2">Medium</option>
+          <option value="3">High</option>
+          <option value="4">Emergency</option>
         </select>
         <div className="flex space-x-4">
           <Button type="submit" disabled={submitting}>

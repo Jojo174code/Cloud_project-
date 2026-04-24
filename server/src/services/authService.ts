@@ -8,8 +8,20 @@ interface RegisterInput {
   full_name: string;
   email: string;
   password: string;
-  role: keyof typeof UserRole; // 'TENANT' | 'MANAGER'
+  role: keyof typeof UserRole;
 }
+
+interface JwtPayload {
+  userId: string;
+  role: UserRole;
+  fullName: string;
+}
+
+const signAuthToken = (payload: JwtPayload) => {
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
+    expiresIn: '7d',
+  });
+};
 
 export const registerUser = async (data: RegisterInput) => {
   const existing = await prisma.user.findUnique({ where: { email: data.email } });
@@ -22,10 +34,27 @@ export const registerUser = async (data: RegisterInput) => {
       full_name: data.full_name,
       email: data.email,
       password_hash,
-      role: data.role as any,
+      role: data.role,
     },
   });
   return user;
+};
+
+export const buildAuthResponse = (user: { id: string; role: UserRole; full_name: string }) => {
+  const token = signAuthToken({
+    userId: user.id,
+    role: user.role,
+    fullName: user.full_name,
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      role: user.role,
+      full_name: user.full_name,
+    },
+  };
 };
 
 export const loginUser = async (email: string, password: string) => {
@@ -37,8 +66,6 @@ export const loginUser = async (email: string, password: string) => {
   if (!valid) {
     throw new Error('Invalid credentials');
   }
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, {
-    expiresIn: '7d',
-  });
-  return token;
+
+  return buildAuthResponse(user);
 };

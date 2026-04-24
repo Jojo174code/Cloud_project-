@@ -9,17 +9,22 @@ const prisma = new PrismaClient();
  * Simple relevance: case‑insensitive substring match on question or answer.
  */
 export const fetchRelevantFaqs = async (question: string) => {
-  const term = question.toLowerCase();
+  const normalizedTerms = question
+    .toLowerCase()
+    .split(/\s+/)
+    .map(term => term.trim())
+    .filter(term => term.length > 1);
+
   const faqs = await prisma.faqEntry.findMany({
-    where: {
-      OR: [
-        { question: { contains: term, mode: 'insensitive' } },
-        { answer: { contains: term, mode: 'insensitive' } },
-      ],
-    },
-    take: 5, // limit to keep prompt small
+    take: 50,
   });
-  return faqs;
+
+  return faqs
+    .filter(faq => {
+      const haystack = `${faq.question} ${faq.answer}`.toLowerCase();
+      return normalizedTerms.some(term => haystack.includes(term));
+    })
+    .slice(0, 5);
 };
 
 /**

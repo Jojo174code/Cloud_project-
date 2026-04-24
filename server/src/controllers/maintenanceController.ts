@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import {
   createMaintenance,
   listMaintenance,
@@ -7,6 +7,10 @@ import {
   deleteMaintenance,
 } from '../services/maintenanceService';
 import { AuthRequest } from '../middleware/auth';
+
+const getParamId = (id: string | string[] | undefined) => {
+  return Array.isArray(id) ? id[0] : id;
+};
 
 // Tenant creates a new request
 export const createRequest = async (req: AuthRequest, res: Response) => {
@@ -40,7 +44,11 @@ export const getRequests = async (req: AuthRequest, res: Response) => {
 };
 
 export const getRequestById = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = getParamId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ message: 'Missing request id' });
+  }
+
   try {
     const request = await getMaintenanceById(id, req.user!);
     if (!request) return res.status(404).json({ message: 'Not found' });
@@ -51,7 +59,11 @@ export const getRequestById = async (req: AuthRequest, res: Response) => {
 };
 
 export const updateRequest = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = getParamId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ message: 'Missing request id' });
+  }
+
   const updates = req.body;
   try {
     const updated = await updateMaintenance(id, updates, req.user!);
@@ -63,7 +75,11 @@ export const updateRequest = async (req: AuthRequest, res: Response) => {
 };
 
 export const deleteRequest = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+  const id = getParamId(req.params.id);
+  if (!id) {
+    return res.status(400).json({ message: 'Missing request id' });
+  }
+
   try {
     const success = await deleteMaintenance(id, req.user!);
     if (!success) return res.status(404).json({ message: 'Not found or cannot delete' });

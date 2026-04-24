@@ -10,6 +10,11 @@ type User = {
   role: "TENANT" | "MANAGER";
 };
 
+type AuthResponse = {
+  token: string;
+  user: User;
+};
+
 type AuthContextType = {
   user: User | null;
   token: string | null;
@@ -18,12 +23,26 @@ type AuthContextType = {
     full_name: string;
     email: string;
     password: string;
-    role: string;
+    role: User["role"];
   }) => Promise<void>;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const getDashboardRoute = (role: User["role"]) => {
+  return role === "MANAGER" ? "/manager/dashboard" : "/tenant/dashboard";
+};
+
+const parseStoredUser = (raw: string | null): User | null => {
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
@@ -31,60 +50,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  const syncUser = async (jwt: string) => {
-    try {
-      const base = jwt.split(".")[1];
-      const payload = JSON.parse(atob(base));
-
-      const parsedUser: User = {
-        id: payload.userId,
-        full_name: payload.fullName || "User",
-        role: payload.role || "TENANT",
-      };
-
-      setUser(parsedUser);
-      return parsedUser;
-    } catch {
-      setUser(null);
-      return null;
-    }
+  const persistAuth = ({ token: authToken, user: authUser }: AuthResponse) => {
+    localStorage.setItem("token", authToken);
+    localStorage.setItem("user", JSON.stringify(authUser));
+    setToken(authToken);
+    setUser(authUser);
+    return authUser;
   };
 
   const login = async (email: string, password: string) => {
-    const { token: jwt } = await api("/api/auth/login", {
+    const auth = await api<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: { email, password },
     });
 
-    localStorage.setItem("token", jwt);
-    setToken(jwt);
-
-    const parsedUser = await syncUser(jwt);
-
-    // ✅ Use parsedUser instead of stale state
-    if (parsedUser?.role === "MANAGER") {
-      router.replace("/manager/dashboard");
-    } else {
-      router.replace("/tenant/dashboard");
-    }
+    const authUser = persistAuth(auth);
+    router.replace(getDashboardRoute(authUser.role));
   };
 
   const register = async (data: {
     full_name: string;
     email: string;
     password: string;
-    role: string;
+    role: User["role"];
   }) => {
-    await api("/api/auth/register", {
+    const auth = await api<AuthResponse>("/api/auth/register", {
       method: "POST",
       body: data,
     });
 
-    router.replace("/login");
+    const authUser = persistAuth(auth);
+    router.replace(getDashboardRoute(authUser.role));
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setToken(null);
     setUser(null);
 
@@ -92,12 +93,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem("token");
+    const storedToken = localStorage.getItem("token");
+    const storedUser = parseStoredUser(localStorage.getItem("user"));
 
-    if (stored) {
-      setToken(stored);
-      syncUser(stored);
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(storedUser);
+      return;
     }
+
+    if (!storedToken) {
+      setToken(null);
+      setUser(null);
+      return;
+    }
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken(null);
+    setUser(null);
   }, []);
 
   return (

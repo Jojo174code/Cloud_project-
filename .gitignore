@@ -9,6 +9,10 @@ coverage/
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.*
 
 *.log
 .DS_Store
+
+!server/.env.example

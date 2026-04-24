@@ -7,6 +7,7 @@ import aiRouter from './routes/ai';
 import { authenticateJwt } from './middleware/auth';
 
 dotenv.config();
+dotenv.config({ path: '.env.example', override: false });
 
 const app = express();
 app.use(cors());

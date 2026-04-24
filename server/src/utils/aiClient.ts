@@ -15,10 +15,19 @@ export interface AiRequest {
   temperature?: number;
 }
 
+interface ChatCompletionResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
 export const callAi = async (payload: AiRequest): Promise<AiResponse> => {
   const apiKey = process.env.AI_API_KEY;
   const baseUrl = process.env.AI_BASE_URL || 'https://api.openai.com/v1';
   const model = process.env.AI_MODEL || payload.model;
+  const { model: _ignoredModel, ...rest } = payload;
 
   if (!apiKey) {
     throw new Error('AI_API_KEY not set');
@@ -30,7 +39,7 @@ export const callAi = async (payload: AiRequest): Promise<AiResponse> => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model, ...payload }),
+    body: JSON.stringify({ model, ...rest }),
   });
 
   if (!response.ok) {
@@ -38,8 +47,7 @@ export const callAi = async (payload: AiRequest): Promise<AiResponse> => {
     throw new Error(`AI request failed: ${response.status} ${txt}`);
   }
 
-  const data = await response.json();
-  // Adjust according to provider response shape – OpenAI chat works like this:
+  const data = (await response.json()) as ChatCompletionResponse;
   const content = data.choices?.[0]?.message?.content ?? '';
   return { content };
 };

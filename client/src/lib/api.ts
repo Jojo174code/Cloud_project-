@@ -1,11 +1,11 @@
-export const api = async (
+export const api = async <T = any>(
   endpoint: string,
   {
     method = 'GET',
     body,
     token,
   }: { method?: string; body?: any; token?: string | null } = {}
-) => {
+): Promise<T> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -22,5 +22,5 @@ export const api = async (
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || 'API error');
   }
-  return res.json();
+  return res.json() as Promise<T>;
 };

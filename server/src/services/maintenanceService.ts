@@ -1,5 +1,4 @@
-import { PrismaClient, RequestStatus, UserRole } from '@prisma/client';
-import { AuthRequest } from '../middleware/auth'; // only for typing, not used directly
+import { AiPriority, PrismaClient, RequestStatus, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +12,19 @@ interface CreateInput {
 }
 
 import { triageMaintenance } from '../services/ai/maintenanceTriage';
+
+const mapPriorityToEnum = (priority: string): AiPriority => {
+  switch (priority.toLowerCase()) {
+    case 'emergency':
+      return AiPriority.EMERGENCY;
+    case 'high':
+      return AiPriority.HIGH;
+    case 'medium':
+      return AiPriority.MEDIUM;
+    default:
+      return AiPriority.LOW;
+  }
+};
 
 export const createMaintenance = async (data: CreateInput) => {
   // First create the basic request record
@@ -35,7 +47,7 @@ export const createMaintenance = async (data: CreateInput) => {
       where: { id: request.id },
       data: {
         ai_category: triage.category,
-        ai_priority: triage.priority === 'emergency' ? 4 : triage.priority === 'high' ? 3 : triage.priority === 'medium' ? 2 : 1,
+        ai_priority: mapPriorityToEnum(triage.priority),
         ai_summary: triage.summary,
         ai_recommended_action: triage.recommended_action,
         ai_response_draft: triage.response_draft,
