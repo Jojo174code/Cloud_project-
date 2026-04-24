@@ -25,6 +25,7 @@ type AuthContextType = {
     password: string;
     role: User["role"];
   }) => Promise<void>;
+  refreshUser: (authToken?: string) => Promise<User | null>;
   logout: () => void;
 };
 
@@ -44,6 +45,11 @@ const parseStoredUser = (raw: string | null): User | null => {
   }
 };
 
+const clearStoredAuth = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
 
@@ -58,13 +64,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authUser;
   };
 
+  const refreshUser = async (authToken?: string) => {
+    const tokenToUse = authToken ?? token ?? localStorage.getItem("token");
+    if (!tokenToUse) {
+      return null;
+    }
+
+    try {
+      const freshUser = await api<User>("/api/auth/me", {
+        method: "GET",
+        token: tokenToUse,
+      });
+      localStorage.setItem("user", JSON.stringify(freshUser));
+      setToken(tokenToUse);
+      setUser(freshUser);
+      return freshUser;
+    } catch {
+      clearStoredAuth();
+      setToken(null);
+      setUser(null);
+      return null;
+    }
+  };
+
   const login = async (email: string, password: string) => {
     const auth = await api<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: { email, password },
     });
 
-    const authUser = persistAuth(auth);
+    persistAuth(auth);
+    const authUser = (await refreshUser(auth.token)) ?? auth.user;
     router.replace(getDashboardRoute(authUser.role));
   };
 
@@ -79,13 +109,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: data,
     });
 
-    const authUser = persistAuth(auth);
+    persistAuth(auth);
+    const authUser = (await refreshUser(auth.token)) ?? auth.user;
     router.replace(getDashboardRoute(authUser.role));
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearStoredAuth();
     setToken(null);
     setUser(null);
 
@@ -96,26 +126,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedToken = localStorage.getItem("token");
     const storedUser = parseStoredUser(localStorage.getItem("user"));
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(storedUser);
-      return;
-    }
-
     if (!storedToken) {
       setToken(null);
       setUser(null);
       return;
     }
 
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setToken(null);
-    setUser(null);
+    if (storedUser) {
+      setToken(storedToken);
+      setUser(storedUser);
+    }
+
+    void refreshUser(storedToken);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, register, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

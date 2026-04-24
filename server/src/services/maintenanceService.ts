@@ -41,24 +41,34 @@ export const createMaintenance = async (data: CreateInput) => {
   });
 
   // Run AI triage and persist the AI‑generated fields
+  let triageData = {
+    category: 'general',
+    priority: 'low',
+    summary: data.title,
+    recommended_action: 'Inspect the issue and contact the tenant for more details.',
+    response_draft: 'We have received your request and will review it shortly.',
+    escalated: false,
+    confidence: 0.0,
+  };
+
   try {
-    const triage = await triageMaintenance(data.title, data.description, data.image_url);
-    await prisma.maintenanceRequest.update({
-      where: { id: request.id },
-      data: {
-        ai_category: triage.category,
-        ai_priority: mapPriorityToEnum(triage.priority),
-        ai_summary: triage.summary,
-        ai_recommended_action: triage.recommended_action,
-        ai_response_draft: triage.response_draft,
-        ai_escalated: triage.escalated,
-        ai_confidence_score: triage.confidence,
-      },
-    });
+    triageData = await triageMaintenance(data.title, data.description, data.image_url);
   } catch (e) {
-    // If AI fails, we simply keep the request without AI fields.
-    console.error('AI triage failed:', e);
+    console.error('AI triage failed, using fallback fields:', e);
   }
+
+  await prisma.maintenanceRequest.update({
+    where: { id: request.id },
+    data: {
+      ai_category: triageData.category,
+      ai_priority: mapPriorityToEnum(triageData.priority),
+      ai_summary: triageData.summary,
+      ai_recommended_action: triageData.recommended_action,
+      ai_response_draft: triageData.response_draft,
+      ai_escalated: triageData.escalated,
+      ai_confidence_score: triageData.confidence,
+    },
+  });
 
   // Return the request (note: AI fields are not included here – callers can fetch again if needed)
   return request;

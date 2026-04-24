@@ -69,3 +69,14 @@ export const loginUser = async (email: string, password: string) => {
 
   return buildAuthResponse(user);
 };
+
+export const getUserById = async (userId: string) => {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      full_name: true,
+      role: true,
+    },
+  });
+};
