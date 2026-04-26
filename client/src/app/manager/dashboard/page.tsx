@@ -7,6 +7,7 @@ import Table from '@/components/Table';
 import Button from '@/components/Button';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import Badge from '@/components/Badge';
+import Link from 'next/link';
 
 type Request = {
   id: string;
@@ -83,12 +84,66 @@ export default function ManagerDashboard() {
   }, [token]);
 
   const columns = [
-    { header: 'Request', render: (r: Request) => <div><p className="font-medium text-white">{r.title}</p><p className="text-xs text-gray-400">#{r.id.slice(0, 8)}</p></div> },
-    { header: 'Status', render: (r: Request) => <Badge label={r.status.replace('_', ' ')} variant={badgeVariantFromStatus(r.status)} /> },
-    { header: 'Urgency', render: (r: Request) => <Badge label={urgencyLabel(r.user_reported_urgency)} variant={badgeVariantFromPriority(r.user_reported_urgency === 4 ? 'EMERGENCY' : r.user_reported_urgency === 3 ? 'HIGH' : r.user_reported_urgency === 2 ? 'MEDIUM' : r.user_reported_urgency === 1 ? 'LOW' : undefined)} /> },
-    { header: 'AI Priority', render: (r: Request) => <div className="space-y-1"><Badge label={r.ai_priority ? r.ai_priority : 'Pending'} variant={badgeVariantFromPriority(r.ai_priority)} />{r.ai_escalated ? <div><Badge label="Escalated" variant="emergency" /></div> : null}</div> },
-    { header: 'AI Summary', render: (r: Request) => <span className="text-gray-300">{r.ai_summary || 'Awaiting triage summary.'}</span>, className: 'min-w-[220px]' },
+    {
+      header: 'Request',
+      render: (r: Request) => (
+        <div>
+          <p className="font-medium text-white">{r.title}</p>
+          <p className="text-xs text-gray-400">#{r.id.slice(0, 8)}</p>
+        </div>
+      ),
+    },
+    {
+      header: 'Status',
+      render: (r: Request) => <Badge label={r.status.replace('_', ' ')} variant={badgeVariantFromStatus(r.status)} />,
+    },
+    {
+      header: 'Urgency',
+      render: (r: Request) => (
+        <Badge
+          label={urgencyLabel(r.user_reported_urgency)}
+          variant={badgeVariantFromPriority(
+            r.user_reported_urgency === 4
+              ? 'EMERGENCY'
+              : r.user_reported_urgency === 3
+              ? 'HIGH'
+              : r.user_reported_urgency === 2
+              ? 'MEDIUM'
+              : r.user_reported_urgency === 1
+              ? 'LOW'
+              : undefined
+          )}
+        />
+      ),
+    },
+    {
+      header: 'AI Priority',
+      render: (r: Request) => (
+        <div className="space-y-1">
+          <Badge label={r.ai_priority ? r.ai_priority : 'Pending'} variant={badgeVariantFromPriority(r.ai_priority)} />
+          {r.ai_escalated ? (
+            <div>
+              <Badge label="Escalated" variant="emergency" />
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: 'AI Summary',
+      render: (r: Request) => <span className="text-gray-300">{r.ai_summary || 'Awaiting triage summary.'}</span>,
+      className: 'min-w-[220px]',
+    },
     { header: 'Created', render: (r: Request) => new Date(r.created_at).toLocaleDateString() },
+    {
+      header: 'Actions',
+      render: (r: Request) => (
+        <Link href={`/requests/${r.id}`}>
+          <Button size="sm">View / Chat</Button>
+        </Link>
+      ),
+      className: 'min-w-[140px]',
+    },
   ];
 
   return (

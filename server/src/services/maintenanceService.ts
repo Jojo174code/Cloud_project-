@@ -1,4 +1,5 @@
 import { AiPriority, PrismaClient, RequestStatus, UserRole } from '@prisma/client';
+import { triageMaintenance } from '../services/ai/maintenanceTriage';
 
 const prisma = new PrismaClient();
 
@@ -11,7 +12,10 @@ interface CreateInput {
   image_url?: string;
 }
 
-import { triageMaintenance } from '../services/ai/maintenanceTriage';
+interface AuthUser {
+  id: string;
+  role: string;
+}
 
 const mapPriorityToEnum = (priority: string): AiPriority => {
   switch (priority.toLowerCase()) {
@@ -26,8 +30,42 @@ const mapPriorityToEnum = (priority: string): AiPriority => {
   }
 };
 
+const requestDetailInclude = {
+  tenant: {
+    select: {
+      id: true,
+      full_name: true,
+      email: true,
+      role: true,
+    },
+  },
+};
+
+const messageInclude = {
+  sender: {
+    select: {
+      id: true,
+      full_name: true,
+      role: true,
+    },
+  },
+};
+
+const getAuthorizedRequest = async (id: string, user: AuthUser) => {
+  const request = await prisma.maintenanceRequest.findUnique({
+    where: { id },
+    include: requestDetailInclude,
+  });
+
+  if (!request) return null;
+  if (user.role === UserRole.MANAGER || request.tenant_id === user.id) {
+    return request;
+  }
+
+  return null;
+};
+
 export const createMaintenance = async (data: CreateInput) => {
-  // First create the basic request record
   const request = await prisma.maintenanceRequest.create({
     data: {
       tenant_id: data.tenantId,
@@ -36,11 +74,9 @@ export const createMaintenance = async (data: CreateInput) => {
       category: data.category,
       user_reported_urgency: data.user_reported_urgency,
       image_url: data.image_url,
-      // status defaults to OPEN via schema default
     },
   });
 
-  // Run AI triage and persist the AI‑generated fields
   let triageData = {
     category: 'general',
     priority: 'low',
@@ -57,7 +93,7 @@ export const createMaintenance = async (data: CreateInput) => {
     console.error('AI triage failed, using fallback fields:', e);
   }
 
-  await prisma.maintenanceRequest.update({
+  const updatedRequest = await prisma.maintenanceRequest.update({
     where: { id: request.id },
     data: {
       ai_category: triageData.category,
@@ -68,44 +104,65 @@ export const createMaintenance = async (data: CreateInput) => {
       ai_escalated: triageData.escalated,
       ai_confidence_score: triageData.confidence,
     },
+    include: requestDetailInclude,
   });
 
-  // Return the request (note: AI fields are not included here – callers can fetch again if needed)
-  return request;
+  return updatedRequest;
 };
 
-/** List requests based on role */
-export const listMaintenance = async (user: { id: string; role: string }) => {
+export const listMaintenance = async (user: AuthUser) => {
   if (user.role === UserRole.MANAGER) {
-    return prisma.maintenanceRequest.findMany({ orderBy: { created_at: 'desc' } });
+    return prisma.maintenanceRequest.findMany({
+      include: requestDetailInclude,
+      orderBy: { created_at: 'desc' },
+    });
   }
-  // tenant – only own requests
+
   return prisma.maintenanceRequest.findMany({
     where: { tenant_id: user.id },
+    include: requestDetailInclude,
     orderBy: { created_at: 'desc' },
   });
 };
 
-export const getMaintenanceById = async (id: string, user: { id: string; role: string }) => {
-  const request = await prisma.maintenanceRequest.findUnique({ where: { id } });
-  if (!request) return null;
-  if (user.role === UserRole.MANAGER || request.tenant_id === user.id) {
-    return request;
-  }
-  return null; // not authorized
+export const getMaintenanceById = async (id: string, user: AuthUser) => {
+  return getAuthorizedRequest(id, user);
 };
 
-export const updateMaintenance = async (
+export const listMaintenanceMessages = async (id: string, user: AuthUser) => {
+  const request = await getAuthorizedRequest(id, user);
+  if (!request) return null;
+
+  return prisma.message.findMany({
+    where: { maintenance_request_id: id },
+    include: messageInclude,
+    orderBy: { created_at: 'asc' },
+  });
+};
+
+export const createMaintenanceMessage = async (
   id: string,
-  updates: any,
-  user: { id: string; role: string }
+  body: string,
+  user: AuthUser
 ) => {
+  const request = await getAuthorizedRequest(id, user);
+  if (!request) return null;
+
+  return prisma.message.create({
+    data: {
+      maintenance_request_id: id,
+      sender_id: user.id,
+      body,
+    },
+    include: messageInclude,
+  });
+};
+
+export const updateMaintenance = async (id: string, updates: any, user: AuthUser) => {
   const existing = await prisma.maintenanceRequest.findUnique({ where: { id } });
   if (!existing) return null;
 
-  // Authorization rules
   if (user.role === UserRole.TENANT) {
-    // Tenants can only modify their own request while status is OPEN and cannot touch AI fields or status
     if (existing.tenant_id !== user.id) return null;
     if (existing.status !== RequestStatus.OPEN) return null;
     const allowedFields = ['title', 'description', 'category', 'user_reported_urgency', 'image_url'];
@@ -113,23 +170,25 @@ export const updateMaintenance = async (
     for (const key of allowedFields) {
       if (key in updates) data[key] = updates[key];
     }
-    if (Object.keys(data).length === 0) return existing; // nothing to change
-    return prisma.maintenanceRequest.update({ where: { id }, data });
+    if (Object.keys(data).length === 0) {
+      return prisma.maintenanceRequest.findUnique({
+        where: { id },
+        include: requestDetailInclude,
+      });
+    }
+    return prisma.maintenanceRequest.update({ where: { id }, data, include: requestDetailInclude });
   }
 
-  // Manager can update any field
-  return prisma.maintenanceRequest.update({ where: { id }, data: updates });
+  return prisma.maintenanceRequest.update({ where: { id }, data: updates, include: requestDetailInclude });
 };
 
-export const deleteMaintenance = async (id: string, user: { id: string; role: string }) => {
+export const deleteMaintenance = async (id: string, user: AuthUser) => {
   const existing = await prisma.maintenanceRequest.findUnique({ where: { id } });
   if (!existing) return false;
-  // Only tenant can delete their own request and only if still OPEN
   if (user.role === UserRole.TENANT) {
     if (existing.tenant_id !== user.id) return false;
     if (existing.status !== RequestStatus.OPEN) return false;
   }
-  // Manager can delete any (optional) – here we allow
   await prisma.maintenanceRequest.delete({ where: { id } });
   return true;
 };

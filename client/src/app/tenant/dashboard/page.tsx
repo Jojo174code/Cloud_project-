@@ -84,11 +84,61 @@ export default function TenantDashboard() {
   }, [token]);
 
   const columns = [
-    { header: 'Request', render: (r: Request) => <div><p className="font-medium text-white">{r.title}</p><p className="text-xs text-gray-400">#{r.id.slice(0, 8)}</p></div> },
-    { header: 'Status', render: (r: Request) => <Badge label={r.status.replace('_', ' ')} variant={badgeVariantFromStatus(r.status)} /> },
-    { header: 'Urgency', render: (r: Request) => <Badge label={urgencyLabel(r.user_reported_urgency)} variant={badgeVariantFromPriority(r.user_reported_urgency === 4 ? 'EMERGENCY' : r.user_reported_urgency === 3 ? 'HIGH' : r.user_reported_urgency === 2 ? 'MEDIUM' : r.user_reported_urgency === 1 ? 'LOW' : undefined)} /> },
-    { header: 'AI Triage', render: (r: Request) => <div className="space-y-1"><Badge label={r.ai_priority ?? 'Pending'} variant={badgeVariantFromPriority(r.ai_priority)} />{r.ai_escalated ? <div><Badge label="Escalated" variant="emergency" /></div> : null}</div> },
+    {
+      header: 'Request',
+      render: (r: Request) => (
+        <div>
+          <p className="font-medium text-white">{r.title}</p>
+          <p className="text-xs text-gray-400">#{r.id.slice(0, 8)}</p>
+        </div>
+      ),
+    },
+    {
+      header: 'Status',
+      render: (r: Request) => <Badge label={r.status.replace('_', ' ')} variant={badgeVariantFromStatus(r.status)} />,
+    },
+    {
+      header: 'Urgency',
+      render: (r: Request) => (
+        <Badge
+          label={urgencyLabel(r.user_reported_urgency)}
+          variant={badgeVariantFromPriority(
+            r.user_reported_urgency === 4
+              ? 'EMERGENCY'
+              : r.user_reported_urgency === 3
+              ? 'HIGH'
+              : r.user_reported_urgency === 2
+              ? 'MEDIUM'
+              : r.user_reported_urgency === 1
+              ? 'LOW'
+              : undefined
+          )}
+        />
+      ),
+    },
+    {
+      header: 'AI Triage',
+      render: (r: Request) => (
+        <div className="space-y-1">
+          <Badge label={r.ai_priority ?? 'Pending'} variant={badgeVariantFromPriority(r.ai_priority)} />
+          {r.ai_escalated ? (
+            <div>
+              <Badge label="Escalated" variant="emergency" />
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
     { header: 'Created', render: (r: Request) => new Date(r.created_at).toLocaleDateString() },
+    {
+      header: 'Actions',
+      render: (r: Request) => (
+        <Link href={`/requests/${r.id}`}>
+          <Button size="sm">View / Chat</Button>
+        </Link>
+      ),
+      className: 'min-w-[140px]',
+    },
   ];
 
   return (
