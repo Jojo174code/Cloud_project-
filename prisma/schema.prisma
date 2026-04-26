@@ -27,6 +27,13 @@ enum AiPriority {
   EMERGENCY
 }
 
+enum RentStatus {
+  PENDING
+  PAID
+  LATE
+  PARTIAL
+}
+
 model User {
   id                   String               @id @default(uuid())
   full_name            String
@@ -36,6 +43,48 @@ model User {
   created_at           DateTime             @default(now())
   maintenanceRequests  MaintenanceRequest[] @relation("TenantRequests")
   messages             Message[]
+  leases               Lease[]              @relation("TenantLeases")
+}
+
+model Property {
+  id           String   @id @default(uuid())
+  name         String
+  address      String
+  monthly_rent Float
+  created_at   DateTime @default(now())
+  leases       Lease[]
+}
+
+model Lease {
+  id           String        @id @default(uuid())
+  tenant_id    String
+  property_id  String
+  rent_amount  Float
+  due_day      Int
+  active       Boolean       @default(true)
+  created_at   DateTime      @default(now())
+  tenant       User          @relation("TenantLeases", fields: [tenant_id], references: [id], onDelete: Cascade)
+  property     Property      @relation(fields: [property_id], references: [id], onDelete: Cascade)
+  rentPayments RentPayment[]
+
+  @@index([tenant_id, active])
+  @@index([property_id])
+}
+
+model RentPayment {
+  id         String     @id @default(uuid())
+  lease_id    String
+  amount      Float
+  due_date    DateTime
+  paid_date   DateTime?
+  status      RentStatus @default(PENDING)
+  method      String?
+  note        String?
+  created_at  DateTime   @default(now())
+  lease       Lease      @relation(fields: [lease_id], references: [id], onDelete: Cascade)
+
+  @@index([lease_id, due_date])
+  @@index([status, due_date])
 }
 
 model MaintenanceRequest {

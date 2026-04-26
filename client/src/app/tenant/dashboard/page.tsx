@@ -9,6 +9,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import Link from 'next/link';
 import AiAssistant from '@/components/AiAssistant';
 import Badge from '@/components/Badge';
+import { api } from '@/lib/api';
 
 type Request = {
   id: string;
@@ -19,6 +20,24 @@ type Request = {
   ai_priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'EMERGENCY' | null;
   ai_escalated?: boolean;
 };
+
+type RentStatus = 'PENDING' | 'PAID' | 'LATE' | 'PARTIAL';
+
+type TenantFinanceSummary = {
+  tenantRentStatus: {
+    propertyName: string;
+    propertyAddress: string;
+    rentAmount: number;
+    dueDay: number;
+    currentDueDate: string;
+    status: RentStatus;
+    amountPaid: number;
+    outstandingAmount: number;
+  } | null;
+};
+
+const currency = (value: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
 const badgeVariantFromPriority = (priority?: string | null) => {
   switch (priority) {
@@ -48,6 +67,19 @@ const badgeVariantFromStatus = (status: Request['status']) => {
   }
 };
 
+const badgeVariantFromRentStatus = (status: RentStatus) => {
+  switch (status) {
+    case 'PAID':
+      return 'success' as const;
+    case 'PARTIAL':
+      return 'medium' as const;
+    case 'LATE':
+      return 'emergency' as const;
+    default:
+      return 'default' as const;
+  }
+};
+
 const urgencyLabel = (urgency?: number | null) => {
   switch (urgency) {
     case 4:
@@ -66,14 +98,19 @@ const urgencyLabel = (urgency?: number | null) => {
 export default function TenantDashboard() {
   const { token, logout } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
+  const [rentStatus, setRentStatus] = useState<TenantFinanceSummary['tenantRentStatus']>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) return;
     const fetch = async () => {
       try {
-        const data = await (await import('@/lib/api')).api<Request[]>('/api/maintenance', { token });
-        setRequests(data);
+        const [requestData, financeData] = await Promise.all([
+          api<Request[]>('/api/maintenance', { token }),
+          api<TenantFinanceSummary>('/api/finance/summary', { token }),
+        ]);
+        setRequests(requestData);
+        setRentStatus(financeData.tenantRentStatus);
       } catch (e) {
         console.error(e);
       } finally {
@@ -154,6 +191,51 @@ export default function TenantDashboard() {
         <OverviewCard title="Resolved" value={requests.filter(r => r.status === 'RESOLVED').length} />
         <OverviewCard title="Escalated" value={requests.filter(r => r.ai_escalated).length} />
       </div>
+
+      <Card className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Rent Status</h2>
+            <p className="text-sm text-gray-400">Manual/mock tracking only for now. No real payment processor is connected.</p>
+          </div>
+          {rentStatus ? <Badge label={rentStatus.status} variant={badgeVariantFromRentStatus(rentStatus.status)} /> : null}
+        </div>
+
+        {loading ? (
+          <div className="mt-4"><LoadingSpinner /></div>
+        ) : rentStatus ? (
+          <div className="mt-5 grid gap-4 md:grid-cols-4">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-sm text-gray-400">Property</p>
+              <p className="mt-2 font-medium text-white">{rentStatus.propertyName}</p>
+              <p className="text-sm text-gray-400">{rentStatus.propertyAddress}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-sm text-gray-400">Rent Amount</p>
+              <p className="mt-2 font-medium text-white">{currency(rentStatus.rentAmount)}</p>
+              <p className="text-sm text-gray-400">Due day {rentStatus.dueDay}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-sm text-gray-400">Current Due Date</p>
+              <p className="mt-2 font-medium text-white">{new Date(rentStatus.currentDueDate).toLocaleDateString()}</p>
+              <p className="text-sm text-gray-400">Paid so far {currency(rentStatus.amountPaid)}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-sm text-gray-400">Outstanding</p>
+              <p className="mt-2 font-medium text-white">{currency(rentStatus.outstandingAmount)}</p>
+              <div className="mt-4">
+                <Button variant="secondary" disabled>
+                  Payment Placeholder
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-gray-400">
+            No active lease or rent record is available yet.
+          </div>
+        )}
+      </Card>
 
       <div className="flex justify-end">
         <Link href="/requests/new" passHref>

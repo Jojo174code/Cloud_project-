@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "seed:faqs": "node scripts/seedFaqs.js"
+    "seed:faqs": "node scripts/seedFaqs.js",
+    "seed:finance-demo": "node scripts/seedFinanceDemo.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
