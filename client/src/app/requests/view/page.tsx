@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -70,10 +70,10 @@ const badgeVariantFromStatus = (status: RequestRecord['status']) => {
 };
 
 export default function RequestDetailPage() {
-  const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { token, user } = useAuth();
-  const requestId = params?.id;
+  const requestId = searchParams.get('id') ?? '';
 
   const [request, setRequest] = useState<RequestRecord | null>(null);
   const [messages, setMessages] = useState<MessageRecord[]>([]);

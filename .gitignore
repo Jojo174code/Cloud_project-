@@ -2,6 +2,8 @@ node_modules/
 **/node_modules/
 .next/
 **/.next/
+out/
+**/out/
 dist/
 build/
 coverage/
@@ -22,3 +24,5 @@ prisma/dev.db
 prisma/dev.db-journal
 *.db
 *.db-journal
+
+.leasepilot-rds-pass

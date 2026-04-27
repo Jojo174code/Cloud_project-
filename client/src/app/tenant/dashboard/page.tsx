@@ -170,7 +170,7 @@ export default function TenantDashboard() {
     {
       header: 'Actions',
       render: (r: Request) => (
-        <Link href={`/requests/${r.id}`}>
+        <Link href={`/requests/view?id=${r.id}`}>
           <Button size="sm">View / Chat</Button>
         </Link>
       ),
