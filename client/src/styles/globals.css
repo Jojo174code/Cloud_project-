@@ -2,7 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Temporary reset: remove custom @apply utility that is breaking Tailwind build */
-html, body {
+html,
+body {
   min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 28%),
+    linear-gradient(180deg, #020617 0%, #0f172a 45%, #111827 100%);
+  color: #e5eefb;
+}
+
+.glass {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.76), rgba(15, 23, 42, 0.58));
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.glass-soft {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px);
 }

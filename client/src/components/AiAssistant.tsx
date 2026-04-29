@@ -85,7 +85,7 @@ export default function AiAssistant() {
   };
 
   return (
-    <section className="mx-auto w-full max-w-4xl">
+    <section className="w-full max-w-none">
       <div className="overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-slate-950/90 via-slate-900/85 to-slate-950/90 shadow-[0_18px_60px_rgba(15,23,42,0.45)] backdrop-blur-xl">
         <div className="border-b border-white/10 bg-white/5 px-6 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
