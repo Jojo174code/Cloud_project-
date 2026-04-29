@@ -180,62 +180,87 @@ export default function TenantDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-white">Tenant Dashboard</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Tenant Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Track rent, manage maintenance, and get quick answers from LeasePilot AI.
+          </p>
+        </div>
         <Button variant="secondary" onClick={logout}>Logout</Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <OverviewCard title="Open Requests" value={requests.filter(r => r.status === 'OPEN').length} />
         <OverviewCard title="In Progress" value={requests.filter(r => r.status === 'IN_PROGRESS').length} />
         <OverviewCard title="Resolved" value={requests.filter(r => r.status === 'RESOLVED').length} />
         <OverviewCard title="Escalated" value={requests.filter(r => r.ai_escalated).length} />
       </div>
 
-      <Card className="p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Rent Status</h2>
-            <p className="text-sm text-gray-400">Manual/mock tracking only for now. No real payment processor is connected.</p>
+      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Rent Status</h2>
+              <p className="text-sm text-gray-400">Manual/mock tracking only for now. No real payment processor is connected.</p>
+            </div>
+            {rentStatus ? <Badge label={rentStatus.status} variant={badgeVariantFromRentStatus(rentStatus.status)} /> : null}
           </div>
-          {rentStatus ? <Badge label={rentStatus.status} variant={badgeVariantFromRentStatus(rentStatus.status)} /> : null}
-        </div>
 
-        {loading ? (
-          <div className="mt-4"><LoadingSpinner /></div>
-        ) : rentStatus ? (
-          <div className="mt-5 grid gap-4 md:grid-cols-4">
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Property</p>
-              <p className="mt-2 font-medium text-white">{rentStatus.propertyName}</p>
-              <p className="text-sm text-gray-400">{rentStatus.propertyAddress}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Rent Amount</p>
-              <p className="mt-2 font-medium text-white">{currency(rentStatus.rentAmount)}</p>
-              <p className="text-sm text-gray-400">Due day {rentStatus.dueDay}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Current Due Date</p>
-              <p className="mt-2 font-medium text-white">{new Date(rentStatus.currentDueDate).toLocaleDateString()}</p>
-              <p className="text-sm text-gray-400">Paid so far {currency(rentStatus.amountPaid)}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Outstanding</p>
-              <p className="mt-2 font-medium text-white">{currency(rentStatus.outstandingAmount)}</p>
-              <div className="mt-4">
-                <Button variant="secondary" disabled>
-                  Payment Placeholder
-                </Button>
+          {loading ? (
+            <div className="mt-4"><LoadingSpinner /></div>
+          ) : rentStatus ? (
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <p className="text-sm text-gray-400">Property</p>
+                <p className="mt-2 font-medium text-white">{rentStatus.propertyName}</p>
+                <p className="text-sm text-gray-400">{rentStatus.propertyAddress}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <p className="text-sm text-gray-400">Rent Amount</p>
+                <p className="mt-2 font-medium text-white">{currency(rentStatus.rentAmount)}</p>
+                <p className="text-sm text-gray-400">Due day {rentStatus.dueDay}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <p className="text-sm text-gray-400">Current Due Date</p>
+                <p className="mt-2 font-medium text-white">{new Date(rentStatus.currentDueDate).toLocaleDateString()}</p>
+                <p className="text-sm text-gray-400">Paid so far {currency(rentStatus.amountPaid)}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                <p className="text-sm text-gray-400">Outstanding</p>
+                <p className="mt-2 font-medium text-white">{currency(rentStatus.outstandingAmount)}</p>
+                <div className="mt-4">
+                  <Button variant="secondary" disabled>
+                    Payment Placeholder
+                  </Button>
+                </div>
               </div>
             </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-gray-400">
+              No active lease or rent record is available yet.
+            </div>
+          )}
+        </Card>
+
+        <div className="rounded-[28px] border border-cyan-400/15 bg-gradient-to-br from-cyan-500/10 via-slate-950/40 to-indigo-500/10 p-6 shadow-[0_18px_50px_rgba(8,47,73,0.28)]">
+          <div className="max-w-md">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-200/80">LeasePilot AI</p>
+            <h2 className="mt-3 text-2xl font-semibold text-white">Fast help without digging through the portal</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Ask about rent timing, maintenance steps, emergencies, or the best way to reach management. The assistant is tuned to stay helpful without making unsupported claims.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-300">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Rent guidance</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Maintenance help</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Emergency triage</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Manager contact</span>
+            </div>
           </div>
-        ) : (
-          <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-gray-400">
-            No active lease or rent record is available yet.
-          </div>
-        )}
-      </Card>
+        </div>
+      </section>
+
+      <AiAssistant />
 
       <div className="flex justify-end">
         <Link href="/requests/new" passHref>
@@ -243,16 +268,14 @@ export default function TenantDashboard() {
         </Link>
       </div>
 
-      <Card className="overflow-x-auto">
-        <h2 className="text-xl font-semibold mb-2 text-white">Your Requests</h2>
+      <Card className="overflow-x-auto p-6">
+        <h2 className="mb-2 text-xl font-semibold text-white">Your Requests</h2>
         {loading ? (
           <LoadingSpinner />
         ) : (
           <Table data={requests} columns={columns} emptyMessage="You have not submitted any maintenance requests yet." />
         )}
       </Card>
-
-      <AiAssistant />
     </div>
   );
 }

@@ -44,6 +44,11 @@ interface IntentHint {
   preferredCategories: string[];
 }
 
+interface LocalAssistantReply {
+  answer: string;
+  reason: string;
+}
+
 const INTENT_HINTS: IntentHint[] = [
   {
     name: 'rent_due',
@@ -72,6 +77,34 @@ const INTENT_HINTS: IntentHint[] = [
   },
 ];
 
+const GREETING_PATTERN = /^(hi|hello|hey|yo|good morning|good afternoon|good evening)(?:\s+there)?[!.?]*$/i;
+const CAPABILITIES_PATTERN = /^(what can you do|help|who are you|what do you do|how can you help|what can you help with)[?.!]*$/i;
+const MAINTENANCE_GUIDANCE_TERMS = [
+  'leak',
+  'leaking',
+  'water heater',
+  'heater',
+  'flood',
+  'flooding',
+  'drip',
+  'pipe',
+  'toilet',
+  'sink',
+  'hvac',
+  'no heat',
+  'no hot water',
+  'smell gas',
+  'gas smell',
+  'spark',
+  'smoke',
+  'broken lock',
+  'lock broken',
+  'door lock',
+  'maintenance',
+  'repair',
+  'noise',
+];
+
 const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 
 const tokenize = (value: string) =>
@@ -83,6 +116,37 @@ const tokenize = (value: string) =>
 const getIntentHints = (question: string) => {
   const normalized = normalize(question);
   return INTENT_HINTS.filter(intent => intent.terms.some(term => normalized.includes(term)));
+};
+
+const getLocalAssistantReply = (question: string): LocalAssistantReply | null => {
+  const trimmed = question.trim();
+  const normalized = normalize(trimmed);
+
+  if (GREETING_PATTERN.test(trimmed)) {
+    return {
+      answer:
+        'Hi, I’m LeasePilot Assistant. I can help with rent questions, maintenance requests, emergency guidance, and contacting management.',
+      reason: 'greeting',
+    };
+  }
+
+  if (CAPABILITIES_PATTERN.test(trimmed)) {
+    return {
+      answer:
+        'I can help you understand rent due dates, submit maintenance requests, identify emergencies, and contact your property manager through request chat.',
+      reason: 'capabilities',
+    };
+  }
+
+  if (MAINTENANCE_GUIDANCE_TERMS.some(term => normalized.includes(term))) {
+    return {
+      answer:
+        'That sounds like a maintenance issue. Please submit a maintenance request from your tenant dashboard with the details, and if there is active leaking or another urgent safety risk, report it right away and follow any immediate safety steps you can take safely.',
+      reason: 'maintenance_guidance',
+    };
+  }
+
+  return null;
 };
 
 const scoreFaq = (faq: FaqEntry, question: string) => {
@@ -137,6 +201,12 @@ const answerFromFaqs = (faqs: FaqEntry[]) => {
 };
 
 export const answerTenantQuestion = async (question: string): Promise<string> => {
+  const localReply = getLocalAssistantReply(question);
+  if (localReply) {
+    console.info(`[FAQ AI] mode=local reason=${localReply.reason} question=${JSON.stringify(question)}`);
+    return localReply.answer;
+  }
+
   const matches = await fetchRelevantFaqs(question);
   const faqs = matches.map(match => match.faq);
 

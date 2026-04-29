@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import LeasePilotMark from "@/components/LeasePilotMark";
 
 export default function NavBar() {
   const { user, logout } = useAuth();
 
   return (
-    <nav className="flex items-center justify-between border-b border-white/10 bg-gray-900/80 px-6 py-4 backdrop-blur-md">
-      <Link href="/" className="text-2xl font-bold text-primary-400">
-        LeasePilot
+    <nav className="flex flex-col gap-4 border-b border-white/10 bg-gray-900/80 px-6 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+      <Link href="/" className="flex items-center gap-3 text-primary-400">
+        <LeasePilotMark compact />
+        <div>
+          <div className="text-2xl font-bold text-primary-400">LeasePilot</div>
+          <div className="text-xs text-gray-400">Property operations, simplified</div>
+        </div>
       </Link>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         {user && (
           <>
             <Link
