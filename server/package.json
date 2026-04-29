@@ -13,6 +13,7 @@
     "prisma:push": "prisma db push --schema=../prisma/schema.prisma",
     "prisma:generate:prod": "prisma generate --schema=../prisma/schema.postgres.prisma",
     "prisma:push:prod": "prisma db push --schema=../prisma/schema.postgres.prisma",
+    "seed": "npm run seed:faqs",
     "seed:faqs": "node scripts/seedFaqs.js",
     "seed:finance-demo": "node scripts/seedFinanceDemo.js"
   },
